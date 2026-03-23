@@ -21,13 +21,14 @@ function safeSheetName(name: string): string {
   return name.replace(/[\\/*?:[\]]/g, "_").slice(0, 31) || "小票";
 }
 
-function buildReceiptRows(entry: QueueFile, index: number): Row[] {
+const BLANK_ROW: Row = { 购物时间: "", 超市名称: "", 商品名称: "", 数量: "", 单价: "", 小计: "" };
+
+/** 单张小票：商品行 + 本票合计行（不含表头） */
+function buildReceiptDataRows(entry: QueueFile): Row[] {
   const result = entry.result!;
-  const rows: Row[] = [];
   const date = result.date ?? "未知时间";
   const store = result.storeName ?? "未知超市";
-
-  rows.push({ ...HEADER_ROW });
+  const rows: Row[] = [];
 
   result.items.forEach((item) => {
     rows.push({
@@ -49,16 +50,13 @@ function buildReceiptRows(entry: QueueFile, index: number): Row[] {
     小计: result.total
   });
 
-  // blank separator row (used by merged mode)
-  rows.push({ 购物时间: "", 超市名称: `__SEP__${index}`, 商品名称: "", 数量: "", 单价: "", 小计: "" });
-
   return rows;
 }
 
 function exportSeparate(files: QueueFile[]): XLSX.WorkBook {
   const workbook = XLSX.utils.book_new();
   files.forEach((entry, index) => {
-    const rows = buildReceiptRows(entry, index).filter((r) => !String(r["超市名称"]).startsWith("__SEP__"));
+    const rows: Row[] = [{ ...HEADER_ROW }, ...buildReceiptDataRows(entry)];
     const ws = XLSX.utils.json_to_sheet(rows, { skipHeader: true });
     ws["!cols"] = COL_WIDTHS;
     const nameSource = `${entry.result!.storeName ?? "小票"}-${entry.result!.date ?? index + 1}`;
@@ -67,15 +65,16 @@ function exportSeparate(files: QueueFile[]): XLSX.WorkBook {
   return workbook;
 }
 
+/** 多张票合并为一张表：仅一行表头，其后按顺序拼接各票商品行与本票合计，票与票之间空一行 */
 function exportMerged(files: QueueFile[]): XLSX.WorkBook {
   const workbook = XLSX.utils.book_new();
-  const allRows: Row[] = [];
+  const allRows: Row[] = [{ ...HEADER_ROW }];
 
   files.forEach((entry, index) => {
-    const rows = buildReceiptRows(entry, index);
-    // replace sentinel separator with a truly blank row
-    rows[rows.length - 1] = { 购物时间: "", 超市名称: "", 商品名称: "", 数量: "", 单价: "", 小计: "" };
-    allRows.push(...rows);
+    allRows.push(...buildReceiptDataRows(entry));
+    if (index < files.length - 1) {
+      allRows.push({ ...BLANK_ROW });
+    }
   });
 
   const ws = XLSX.utils.json_to_sheet(allRows, { skipHeader: true });
