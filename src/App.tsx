@@ -1,6 +1,7 @@
 import { Download, LoaderCircle, Play, Trash2, X, ZoomIn } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ApiKeyInput from "./components/ApiKeyInput";
+import { getBuiltinZhipuApiKey, resolveZhipuApiKey } from "./config/builtinApi";
 import ImageUploader from "./components/ImageUploader";
 import ReceiptTable from "./components/ReceiptTable";
 import ThemeToggle from "./components/ThemeToggle";
@@ -35,6 +36,8 @@ export default function App() {
   const lightboxWasDraggingRef = useRef(false);
   const [exportMode, setExportMode] = useState<ExportMode>("separate");
   const queueRef = useRef(queue);
+
+  const effectiveApiKey = useMemo(() => resolveZhipuApiKey(apiKey), [apiKey]);
 
   useEffect(() => {
     queueRef.current = queue;
@@ -102,15 +105,15 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (!apiKey.trim()) {
+    if (!effectiveApiKey.trim()) {
       setApiStatus("error");
       return;
     }
     setApiStatus("testing");
-    testApiKey(apiKey).then((isValid) => {
+    testApiKey(effectiveApiKey).then((isValid) => {
       setApiStatus(isValid ? "success" : "error");
     });
-  }, [apiKey]);
+  }, [effectiveApiKey]);
 
   useEffect(() => {
     return () => {
@@ -155,12 +158,19 @@ export default function App() {
   const saveApiKey = (value: string) => {
     writeApiKey(value);
     setApiKey(value.trim());
-    showToast("API Key 已保存到本地。");
+    const builtin = getBuiltinZhipuApiKey();
+    if (value.trim()) {
+      showToast("API Key 已保存到本地，将优先使用你的 Key。");
+    } else if (builtin) {
+      showToast("已清除自定义 Key，将使用站点默认 Key。");
+    } else {
+      showToast("已清除。当前未配置自定义 Key 与内置 Key。");
+    }
   };
 
   const runRecognition = async () => {
-    if (!apiKey.trim()) {
-      showToast("请先输入并保存 API Key。");
+    if (!effectiveApiKey.trim()) {
+      showToast("未配置可用 API Key：请填写并保存你自己的 Key，或由站长配置内置 Key。");
       return;
     }
     if (queue.length === 0) {
@@ -173,7 +183,7 @@ export default function App() {
       if (entry.status === "success") continue;
       setQueue((prev) => prev.map((item) => (item.id === entry.id ? { ...item, status: "processing", errorMessage: undefined } : item)));
       try {
-        const result = await recognizeReceipt(entry.file, apiKey);
+        const result = await recognizeReceipt(entry.file, effectiveApiKey);
         setQueue((prev) =>
           prev.map((item) =>
             item.id === entry.id ? { ...item, status: "success", result, errorMessage: undefined } : item
@@ -238,7 +248,7 @@ export default function App() {
 
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-5 lg:grid-cols-[1.1fr_1.3fr]">
         <section className="space-y-4">
-          <ApiKeyInput initialValue={apiKey} onSave={saveApiKey} />
+          <ApiKeyInput initialValue={apiKey} builtinAvailable={!!getBuiltinZhipuApiKey()} onSave={saveApiKey} />
           <ImageUploader onAddFiles={addFiles} />
 
           <section className="card">
