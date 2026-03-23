@@ -322,11 +322,22 @@ export default function App() {
             <div className="space-y-4">
               <section className="card">
                 <h2 className="mb-2 text-sm font-semibold">原图预览</h2>
-                <img
-                  src={selected.previewUrl}
-                  alt={selected.file.name}
-                  className="max-h-[320px] w-full rounded-xl object-contain"
-                />
+                <div
+                  className="group/preview relative cursor-zoom-in"
+                  onClick={() => {
+                    setLightboxZoom(1);
+                    setLightboxUrl(selected.previewUrl);
+                  }}
+                >
+                  <img
+                    src={selected.previewUrl}
+                    alt={selected.file.name}
+                    className="max-h-[320px] w-full rounded-xl object-contain"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 transition-colors group-hover/preview:bg-black/25">
+                    <ZoomIn className="h-8 w-8 text-white opacity-0 drop-shadow transition-opacity group-hover/preview:opacity-100" />
+                  </div>
+                </div>
               </section>
               <ReceiptTable receipt={selected.result} onChange={(next) => updateReceipt(selected.id, next)} />
             </div>
