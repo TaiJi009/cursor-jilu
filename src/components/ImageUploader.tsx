@@ -20,7 +20,7 @@ export default function ImageUploader({ onAddFiles }: ImageUploaderProps) {
   return (
     <section className="card">
       <div
-        className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
+        className={`cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-colors sm:rounded-2xl sm:p-8 ${
           isDragOver
             ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20"
             : "border-gray-300 hover:border-blue-400 dark:border-gray-600"
@@ -37,10 +37,10 @@ export default function ImageUploader({ onAddFiles }: ImageUploaderProps) {
           pickFiles(event.dataTransfer.files);
         }}
       >
-        <ImagePlus className="mx-auto mb-3 h-10 w-10 text-blue-600 dark:text-blue-400" />
-        <p className="text-base font-semibold text-gray-800 dark:text-gray-100">上传小票图片</p>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          点击选择或拖拽多张图片（JPG / PNG / WEBP）
+        <ImagePlus className="mx-auto mb-2 h-8 w-8 text-blue-600 sm:mb-3 sm:h-10 sm:w-10 dark:text-blue-400" />
+        <p className="text-sm font-semibold text-gray-800 sm:text-base dark:text-gray-100">上传小票图片</p>
+        <p className="mt-1.5 text-xs text-gray-600 sm:mt-2 sm:text-sm dark:text-gray-400">
+          点击选择；电脑可拖拽多张（JPG / PNG / WEBP）
         </p>
       </div>
       <input

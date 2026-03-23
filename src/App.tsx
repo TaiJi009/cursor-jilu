@@ -231,18 +231,30 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-200 dark:bg-gray-900 dark:text-gray-100">
-      <header className="border-b border-gray-200 bg-white/90 backdrop-blur dark:border-gray-700 dark:bg-gray-800/90">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <div>
-            <h1 className="text-lg font-bold">超市小票识别助手</h1>
-            <p className="text-xs text-gray-600 dark:text-gray-400">上传图片 -&gt; AI 识别 -&gt; 校对 -&gt; 导出 Excel</p>
+      <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur dark:border-gray-700 dark:bg-gray-800/90">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-3.5">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-base font-bold sm:text-lg">超市小票识别助手</h1>
+            <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-gray-600 sm:text-xs dark:text-gray-400">
+              上传图片 → AI 识别 → 校对 → 导出 Excel
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm" title={
-              apiStatus === "success" ? "API 接入成功" :
-              apiStatus === "testing" ? "API 接入中..." : "API 未接入或无效"
-            }>
-              <span className="text-gray-600 dark:text-gray-300">API 状态:</span>
+          <div className="flex flex-shrink-0 flex-wrap items-center justify-between gap-2 sm:justify-end sm:gap-4">
+            <div
+              className="flex items-center gap-1.5 text-xs sm:gap-2 sm:text-sm"
+              title={
+                apiStatus === "success"
+                  ? "API 接入成功"
+                  : apiStatus === "testing"
+                    ? "API 接入中..."
+                    : "API 未接入或无效"
+              }
+            >
+              <span className="text-gray-600 dark:text-gray-300">
+                <span className="sm:hidden">API</span>
+                <span className="hidden sm:inline">API 状态</span>
+                <span className="hidden sm:inline">:</span>
+              </span>
               <div className="relative flex h-3 w-3 items-center justify-center">
                 {apiStatus === "testing" && (
                   <>
@@ -266,7 +278,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-4 px-4 py-5 lg:grid-cols-[1.1fr_1.3fr]">
+      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-3 py-4 sm:gap-5 sm:px-4 sm:py-5 md:grid-cols-2 md:gap-5 lg:grid-cols-[1.1fr_1.3fr] lg:gap-6">
         <section className="space-y-4">
           <ApiKeyInput
             mode={apiKeySourceMode}
@@ -283,7 +295,7 @@ export default function App() {
                 已完成 {completedCount}/{queue.length}
               </span>
             </div>
-            <div className="grid max-h-80 gap-2 overflow-auto pr-1">
+            <div className="grid max-h-[min(50vh,18rem)] gap-2 overflow-auto pr-1 sm:max-h-80">
               {queue.length === 0 && (
                 <p className="rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-600 dark:bg-gray-700/40 dark:text-gray-300">
                   还没有上传图片
@@ -301,7 +313,7 @@ export default function App() {
                   }`}
                 >
                   <div
-                    className="group/thumb relative h-14 w-14 shrink-0 cursor-zoom-in"
+                    className="group/thumb relative h-14 w-14 shrink-0 cursor-zoom-in touch-manipulation"
                     onClick={(event) => {
                       event.stopPropagation();
                       setLightboxZoom(1);
@@ -311,8 +323,8 @@ export default function App() {
                     }}
                   >
                     <img src={item.previewUrl} alt={item.file.name} className="h-14 w-14 rounded-lg object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-colors group-hover/thumb:bg-black/30">
-                      <ZoomIn className="h-5 w-5 text-white opacity-0 drop-shadow transition-opacity group-hover/thumb:opacity-100" />
+                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/15 transition-colors group-hover/thumb:bg-black/30 md:bg-black/0 md:group-hover/thumb:bg-black/30">
+                      <ZoomIn className="h-5 w-5 text-white opacity-80 drop-shadow transition-opacity md:opacity-0 md:group-hover/thumb:opacity-100" />
                     </div>
                   </div>
                   <div className="min-w-0 flex-1">
@@ -346,7 +358,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setExportMode("separate")}
-                  className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                  className={`min-h-10 flex-1 touch-manipulation rounded-md px-2 py-2 text-xs font-medium transition-colors sm:min-h-0 sm:py-1 ${
                     exportMode === "separate"
                       ? "bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100"
                       : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -357,7 +369,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setExportMode("merged")}
-                  className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                  className={`min-h-10 flex-1 touch-manipulation rounded-md px-2 py-2 text-xs font-medium transition-colors sm:min-h-0 sm:py-1 ${
                     exportMode === "merged"
                       ? "bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100"
                       : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -367,10 +379,10 @@ export default function App() {
                 </button>
               </div>
             )}
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
-                className="btn-primary flex-1 justify-center"
+                className="btn-primary w-full flex-1 justify-center sm:w-auto"
                 onClick={runRecognition}
                 disabled={isRecognizing || queue.length === 0}
               >
@@ -379,7 +391,7 @@ export default function App() {
               </button>
               <button
                 type="button"
-                className="btn-secondary flex-1 justify-center"
+                className="btn-secondary w-full flex-1 justify-center sm:w-auto"
                 onClick={exportExcel}
                 disabled={queue.every((item) => item.status !== "success")}
               >
@@ -392,7 +404,7 @@ export default function App() {
 
         <section>
           {!selected?.result ? (
-            <div className="card flex min-h-[420px] items-center justify-center text-sm text-gray-500 dark:text-gray-400">
+            <div className="card flex min-h-[min(42vh,16rem)] items-center justify-center px-3 text-center text-xs text-gray-500 sm:min-h-[420px] sm:text-sm dark:text-gray-400">
               上传并识别后，这里会显示可编辑的结构化结果。
             </div>
           ) : (
@@ -400,7 +412,7 @@ export default function App() {
               <section className="card">
                 <h2 className="mb-2 text-sm font-semibold">原图预览</h2>
                 <div
-                  className="group/preview relative cursor-zoom-in"
+                  className="group/preview relative cursor-zoom-in touch-manipulation"
                   onClick={() => {
                     setLightboxZoom(1);
                     setLightboxPan({ x: 0, y: 0 });
@@ -411,10 +423,10 @@ export default function App() {
                   <img
                     src={selected.previewUrl}
                     alt={selected.file.name}
-                    className="max-h-[320px] w-full rounded-xl object-contain"
+                    className="max-h-[min(45vh,20rem)] w-full rounded-xl object-contain sm:max-h-[320px]"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 transition-colors group-hover/preview:bg-black/25">
-                    <ZoomIn className="h-8 w-8 text-white opacity-0 drop-shadow transition-opacity group-hover/preview:opacity-100" />
+                  <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/10 transition-colors group-hover/preview:bg-black/25 md:bg-black/0 md:group-hover/preview:bg-black/25">
+                    <ZoomIn className="h-7 w-7 text-white opacity-70 drop-shadow transition-opacity sm:h-8 sm:w-8 md:opacity-0 md:group-hover/preview:opacity-100" />
                   </div>
                 </div>
               </section>
@@ -425,7 +437,7 @@ export default function App() {
       </main>
 
       {toast && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-xl bg-gray-900 px-4 py-2 text-sm text-white shadow-lg dark:bg-gray-100 dark:text-gray-900">
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 right-4 z-50 rounded-xl bg-gray-900 px-4 py-3 text-center text-sm text-white shadow-lg sm:left-1/2 sm:right-auto sm:w-auto sm:max-w-lg sm:-translate-x-1/2 sm:px-5 sm:py-2.5 dark:bg-gray-100 dark:text-gray-900">
           {toast}
         </div>
       )}
@@ -438,7 +450,7 @@ export default function App() {
         >
           <button
             type="button"
-            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+            className="absolute right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] min-h-11 min-w-11 touch-manipulation rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
             onClick={closeLightbox}
           >
             <X className="h-5 w-5" />
@@ -488,8 +500,9 @@ export default function App() {
             </div>
           </div>
 
-          <p className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/50">
-            滚轮缩放 · 按住左键拖动 · 松手归中 · 双击重置缩放
+          <p className="pointer-events-none absolute bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 max-w-[90vw] -translate-x-1/2 px-2 text-center text-[10px] text-white/50 sm:text-xs">
+            <span className="hidden sm:inline">滚轮缩放 · </span>
+            拖动平移 · 松手归中 · 双击重置
           </p>
         </div>
       )}
