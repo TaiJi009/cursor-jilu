@@ -66,6 +66,27 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+export async function testApiKey(apiKey: string): Promise<boolean> {
+  if (!apiKey.trim()) return false;
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey.trim()}`
+      },
+      body: JSON.stringify({
+        model: "glm-4-flash",
+        messages: [{ role: "user", content: "hello" }],
+        max_tokens: 5
+      })
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function recognizeReceipt(file: File, apiKey: string): Promise<Receipt> {
   if (!apiKey.trim()) {
     throw new Error("请先设置智谱 API Key。");

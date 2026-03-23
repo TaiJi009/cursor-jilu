@@ -1,12 +1,12 @@
 import { Download, LoaderCircle, Play, Trash2, X, ZoomIn } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ApiKeyInput from "./components/ApiKeyInput";
 import ImageUploader from "./components/ImageUploader";
 import ReceiptTable from "./components/ReceiptTable";
 import ThemeToggle from "./components/ThemeToggle";
 import { exportReceiptsToExcel, type ExportMode } from "./lib/exportExcel";
 import { readApiKey, readTheme, type ThemeMode, writeApiKey, writeTheme } from "./lib/storage";
-import { recognizeReceipt } from "./lib/zhipu";
+import { recognizeReceipt, testApiKey } from "./lib/zhipu";
 import type { QueueFile, Receipt } from "./types/receipt";
 
 function newQueueFile(file: File): QueueFile {
@@ -21,11 +21,14 @@ function newQueueFile(file: File): QueueFile {
 export default function App() {
   const [theme, setTheme] = useState<ThemeMode>(() => readTheme());
   const [apiKey, setApiKey] = useState<string>(() => readApiKey());
+  const [apiStatus, setApiStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
   const [queue, setQueue] = useState<QueueFile[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string>("");
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [lightboxZoom, setLightboxZoom] = useState(1);
+  const lightboxRef = useRef<HTMLDivElement>(null);
   const [exportMode, setExportMode] = useState<ExportMode>("separate");
   const queueRef = useRef(queue);
 
@@ -33,10 +36,41 @@ export default function App() {
     queueRef.current = queue;
   }, [queue]);
 
+  const closeLightbox = useCallback(() => {
+    setLightboxUrl(null);
+    setLightboxZoom(1);
+  }, []);
+
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const el = lightboxRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      setLightboxZoom((prev) => {
+        const delta = e.deltaY > 0 ? -0.12 : 0.12;
+        return Math.min(5, Math.max(0.2, prev + delta));
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [lightboxUrl]);
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
     writeTheme(theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (!apiKey.trim()) {
+      setApiStatus("error");
+      return;
+    }
+    setApiStatus("testing");
+    testApiKey(apiKey).then((isValid) => {
+      setApiStatus(isValid ? "success" : "error");
+    });
+  }, [apiKey]);
 
   useEffect(() => {
     return () => {
@@ -133,10 +167,32 @@ export default function App() {
             <h1 className="text-lg font-bold">超市小票识别助手</h1>
             <p className="text-xs text-gray-600 dark:text-gray-400">上传图片 -&gt; AI 识别 -&gt; 校对 -&gt; 导出 Excel</p>
           </div>
-          <ThemeToggle
-            theme={theme}
-            onToggle={() => setTheme((prev) => (prev === "light" ? "dark" : "light"))}
-          />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm" title={
+              apiStatus === "success" ? "API 接入成功" :
+              apiStatus === "testing" ? "API 接入中..." : "API 未接入或无效"
+            }>
+              <span className="text-gray-600 dark:text-gray-300">API 状态:</span>
+              <div className="relative flex h-3 w-3 items-center justify-center">
+                {apiStatus === "testing" && (
+                  <>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-400 opacity-75"></span>
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-500"></span>
+                  </>
+                )}
+                {apiStatus === "success" && (
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>
+                )}
+                {apiStatus === "error" && (
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></span>
+                )}
+              </div>
+            </div>
+            <ThemeToggle
+              theme={theme}
+              onToggle={() => setTheme((prev) => (prev === "light" ? "dark" : "light"))}
+            />
+          </div>
         </div>
       </header>
 
@@ -173,6 +229,7 @@ export default function App() {
                     className="group/thumb relative h-14 w-14 shrink-0 cursor-zoom-in"
                     onClick={(event) => {
                       event.stopPropagation();
+                      setLightboxZoom(1);
                       setLightboxUrl(item.previewUrl);
                     }}
                   >
@@ -285,22 +342,36 @@ export default function App() {
 
       {lightboxUrl && (
         <div
+          ref={lightboxRef}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
-          onClick={() => setLightboxUrl(null)}
+          onClick={closeLightbox}
         >
           <button
             type="button"
             className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
-            onClick={() => setLightboxUrl(null)}
+            onClick={closeLightbox}
           >
             <X className="h-5 w-5" />
           </button>
+
+          {lightboxZoom !== 1 && (
+            <div className="absolute left-4 top-4 rounded-full bg-black/40 px-3 py-1 text-xs text-white backdrop-blur-sm">
+              {Math.round(lightboxZoom * 100)}%
+            </div>
+          )}
+
           <img
             src={lightboxUrl}
             alt="图片预览"
             className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+            style={{ transform: `scale(${lightboxZoom})`, transition: "transform 0.1s ease" }}
             onClick={(event) => event.stopPropagation()}
+            onDoubleClick={() => setLightboxZoom(1)}
           />
+
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-white/50">
+            滚轮缩放 · 双击重置
+          </p>
         </div>
       )}
     </div>
