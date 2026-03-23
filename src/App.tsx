@@ -1,12 +1,21 @@
 import { Download, LoaderCircle, Play, Trash2, X, ZoomIn } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ApiKeyInput from "./components/ApiKeyInput";
-import { getBuiltinZhipuApiKey, resolveZhipuApiKey } from "./config/builtinApi";
+import { resolveZhipuApiKey } from "./config/builtinApi";
 import ImageUploader from "./components/ImageUploader";
 import ReceiptTable from "./components/ReceiptTable";
 import ThemeToggle from "./components/ThemeToggle";
 import { exportReceiptsToExcel, type ExportMode } from "./lib/exportExcel";
-import { readApiKey, readTheme, type ThemeMode, writeApiKey, writeTheme } from "./lib/storage";
+import {
+  readApiKey,
+  readApiKeySourceMode,
+  readTheme,
+  type ApiKeySourceMode,
+  type ThemeMode,
+  writeApiKey,
+  writeApiKeySourceMode,
+  writeTheme
+} from "./lib/storage";
 import { recognizeReceipt, testApiKey } from "./lib/zhipu";
 import type { QueueFile, Receipt } from "./types/receipt";
 
@@ -22,6 +31,7 @@ function newQueueFile(file: File): QueueFile {
 export default function App() {
   const [theme, setTheme] = useState<ThemeMode>(() => readTheme());
   const [apiKey, setApiKey] = useState<string>(() => readApiKey());
+  const [apiKeySourceMode, setApiKeySourceMode] = useState<ApiKeySourceMode>(() => readApiKeySourceMode());
   const [apiStatus, setApiStatus] = useState<"idle" | "testing" | "success" | "error">("idle");
   const [queue, setQueue] = useState<QueueFile[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -37,7 +47,10 @@ export default function App() {
   const [exportMode, setExportMode] = useState<ExportMode>("separate");
   const queueRef = useRef(queue);
 
-  const effectiveApiKey = useMemo(() => resolveZhipuApiKey(apiKey), [apiKey]);
+  const effectiveApiKey = useMemo(
+    () => resolveZhipuApiKey(apiKeySourceMode, apiKey),
+    [apiKeySourceMode, apiKey]
+  );
 
   useEffect(() => {
     queueRef.current = queue;
@@ -158,19 +171,26 @@ export default function App() {
   const saveApiKey = (value: string) => {
     writeApiKey(value);
     setApiKey(value.trim());
-    const builtin = getBuiltinZhipuApiKey();
     if (value.trim()) {
-      showToast("API Key 已保存到本地，将优先使用你的 Key。");
-    } else if (builtin) {
-      showToast("已清除自定义 Key，将使用站点默认 Key。");
+      showToast("自定义 API Key 已保存到本机。");
     } else {
-      showToast("已清除。当前未配置自定义 Key 与内置 Key。");
+      showToast("已清空。在「使用我自己的 Key」模式下需填写并保存后才能识别。");
     }
+  };
+
+  const setApiKeySource = (mode: ApiKeySourceMode) => {
+    writeApiKeySourceMode(mode);
+    setApiKeySourceMode(mode);
+    showToast(mode === "builtin" ? "已切换为站点默认 API。" : "已切换为自定义 API，请填写并保存你的 Key。");
   };
 
   const runRecognition = async () => {
     if (!effectiveApiKey.trim()) {
-      showToast("未配置可用 API Key：请填写并保存你自己的 Key，或由站长配置内置 Key。");
+      showToast(
+        apiKeySourceMode === "custom"
+          ? "当前为自定义 API：请先填写并保存你的智谱 API Key。"
+          : "站点默认 API 不可用，请联系管理员。"
+      );
       return;
     }
     if (queue.length === 0) {
@@ -248,7 +268,12 @@ export default function App() {
 
       <main className="mx-auto grid max-w-7xl gap-4 px-4 py-5 lg:grid-cols-[1.1fr_1.3fr]">
         <section className="space-y-4">
-          <ApiKeyInput initialValue={apiKey} builtinAvailable={!!getBuiltinZhipuApiKey()} onSave={saveApiKey} />
+          <ApiKeyInput
+            mode={apiKeySourceMode}
+            onModeChange={setApiKeySource}
+            customKeyValue={apiKey}
+            onSaveCustomKey={saveApiKey}
+          />
           <ImageUploader onAddFiles={addFiles} />
 
           <section className="card">
