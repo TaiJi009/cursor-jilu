@@ -1,10 +1,10 @@
-import { Download, LoaderCircle, Play, Trash2 } from "lucide-react";
+import { Download, LoaderCircle, Play, Trash2, X, ZoomIn } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ApiKeyInput from "./components/ApiKeyInput";
 import ImageUploader from "./components/ImageUploader";
 import ReceiptTable from "./components/ReceiptTable";
 import ThemeToggle from "./components/ThemeToggle";
-import { exportReceiptsToExcel } from "./lib/exportExcel";
+import { exportReceiptsToExcel, type ExportMode } from "./lib/exportExcel";
 import { readApiKey, readTheme, type ThemeMode, writeApiKey, writeTheme } from "./lib/storage";
 import { recognizeReceipt } from "./lib/zhipu";
 import type { QueueFile, Receipt } from "./types/receipt";
@@ -25,6 +25,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string>("");
   const [isRecognizing, setIsRecognizing] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [exportMode, setExportMode] = useState<ExportMode>("separate");
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
@@ -111,8 +113,8 @@ export default function App() {
 
   const exportExcel = () => {
     try {
-      exportReceiptsToExcel(queue);
-      showToast("Excel 导出成功。");
+      exportReceiptsToExcel(queue, exportMode);
+      showToast(`Excel 导出成功（${exportMode === "merged" ? "合并汇总" : "分 Sheet"}模式）。`);
     } catch (error) {
       showToast(error instanceof Error ? error.message : "导出失败。");
     }
@@ -162,7 +164,18 @@ export default function App() {
                       : "border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-700/40"
                   }`}
                 >
-                  <img src={item.previewUrl} alt={item.file.name} className="h-14 w-14 rounded-lg object-cover" />
+                  <div
+                    className="group/thumb relative h-14 w-14 shrink-0 cursor-zoom-in"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setLightboxUrl(item.previewUrl);
+                    }}
+                  >
+                    <img src={item.previewUrl} alt={item.file.name} className="h-14 w-14 rounded-lg object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/0 transition-colors group-hover/thumb:bg-black/30">
+                      <ZoomIn className="h-5 w-5 text-white opacity-0 drop-shadow transition-opacity group-hover/thumb:opacity-100" />
+                    </div>
+                  </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm">{item.file.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -189,6 +202,32 @@ export default function App() {
                 </button>
               ))}
             </div>
+            {queue.some((item) => item.status === "success") && (
+              <div className="mt-3 flex items-center gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700/50">
+                <button
+                  type="button"
+                  onClick={() => setExportMode("separate")}
+                  className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                    exportMode === "separate"
+                      ? "bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  }`}
+                >
+                  分 Sheet
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportMode("merged")}
+                  className={`flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                    exportMode === "merged"
+                      ? "bg-white text-gray-900 shadow-sm dark:bg-gray-600 dark:text-gray-100"
+                      : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  }`}
+                >
+                  合并汇总
+                </button>
+              </div>
+            )}
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
@@ -236,6 +275,27 @@ export default function App() {
       {toast && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 rounded-xl bg-gray-900 px-4 py-2 text-sm text-white shadow-lg dark:bg-gray-100 dark:text-gray-900">
           {toast}
+        </div>
+      )}
+
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            type="button"
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
+            onClick={() => setLightboxUrl(null)}
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="图片预览"
+            className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          />
         </div>
       )}
     </div>
