@@ -3,11 +3,12 @@ import { useRef, useState } from "react";
 
 interface ImageUploaderProps {
   onAddFiles: (files: File[]) => void;
+  className?: string;
 }
 
 const SUPPORTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-export default function ImageUploader({ onAddFiles }: ImageUploaderProps) {
+export default function ImageUploader({ onAddFiles, className }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -18,9 +19,9 @@ export default function ImageUploader({ onAddFiles }: ImageUploaderProps) {
   };
 
   return (
-    <section className="card">
+    <section className={`card flex min-h-0 flex-col ${className ?? ""}`}>
       <div
-        className={`cursor-pointer rounded-xl border-2 border-dashed p-4 text-center transition-colors sm:rounded-2xl sm:p-8 ${
+        className={`flex min-h-[11rem] flex-1 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-4 text-center transition-colors sm:min-h-[12rem] sm:rounded-2xl sm:p-6 ${
           isDragOver
             ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20"
             : "border-gray-300 hover:border-blue-400 dark:border-gray-600"

@@ -7,9 +7,11 @@ interface ApiKeyInputProps {
   onModeChange: (mode: ApiKeySourceMode) => void;
   customKeyValue: string;
   onSaveCustomKey: (value: string) => void;
+  /** 外层卡片额外 class（如栅格内等高 flex） */
+  className?: string;
 }
 
-export default function ApiKeyInput({ mode, onModeChange, customKeyValue, onSaveCustomKey }: ApiKeyInputProps) {
+export default function ApiKeyInput({ mode, onModeChange, customKeyValue, onSaveCustomKey, className }: ApiKeyInputProps) {
   const [value, setValue] = useState(customKeyValue);
 
   useEffect(() => {
@@ -17,7 +19,7 @@ export default function ApiKeyInput({ mode, onModeChange, customKeyValue, onSave
   }, [customKeyValue]);
 
   return (
-    <section className="card">
+    <section className={`card flex min-h-0 flex-col ${className ?? ""}`}>
       <div className="mb-3 flex flex-wrap items-center gap-2 text-gray-800 dark:text-gray-200">
         <KeyRound className="h-4 w-4" />
         <h2 className="text-sm font-semibold">智谱 API Key</h2>

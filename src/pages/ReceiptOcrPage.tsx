@@ -427,24 +427,30 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
             </section>
           </aside>
 
-          {/* 右侧上：API / 上传 / 队列 */}
-          <section className="order-1 space-y-4 lg:order-2 lg:col-start-2 lg:row-start-1">
-            <ApiKeyInput
-            mode={apiKeySourceMode}
-            onModeChange={setApiKeySource}
-            customKeyValue={apiKey}
-            onSaveCustomKey={saveApiKey}
-            />
-            <ImageUploader onAddFiles={handleRequestAddFiles} />
-
-            <section className="card">
-            <div className="mb-3 flex items-center justify-between">
+          {/* 右侧上：API / 上传 / 队列（大屏横向三列） */}
+          <section className="order-1 lg:order-2 lg:col-start-2 lg:row-start-1">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch lg:gap-3">
+              <div className="min-w-0">
+                <ApiKeyInput
+                  mode={apiKeySourceMode}
+                  onModeChange={setApiKeySource}
+                  customKeyValue={apiKey}
+                  onSaveCustomKey={saveApiKey}
+                  className="h-full"
+                />
+              </div>
+              <div className="min-w-0">
+                <ImageUploader onAddFiles={handleRequestAddFiles} className="h-full" />
+              </div>
+              <div className="min-w-0 flex min-h-0 flex-col">
+                <section className="card flex h-full min-h-0 flex-col">
+            <div className="mb-3 flex shrink-0 items-center justify-between">
               <h2 className="text-sm font-semibold">待识别队列</h2>
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 已完成 {completedCount}/{queue.length}
               </span>
             </div>
-            <div className="grid max-h-[min(50vh,18rem)] gap-2 overflow-auto pr-1 sm:max-h-80">
+            <div className="grid min-h-[min(8rem,30vh)] flex-1 gap-2 overflow-y-auto pr-1 lg:min-h-0">
               {queue.length === 0 && (
                 <p className="rounded-lg bg-gray-100 px-3 py-2 text-sm text-gray-600 dark:bg-gray-700/40 dark:text-gray-300">
                   还没有上传图片
@@ -569,7 +575,9 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
                 导出 Excel
               </button>
             </div>
-            </section>
+                </section>
+              </div>
+            </div>
           </section>
 
           {/* 右侧下：校对与编辑（无结果时为占位） */}
