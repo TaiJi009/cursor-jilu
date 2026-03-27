@@ -16,6 +16,7 @@ import MergedReceiptTable from "../components/MergedReceiptTable";
 import ReceiptTable from "../components/ReceiptTable";
 import { resolveZhipuApiKey } from "../config/builtinApi";
 import { exportReceiptsToExcel, type ExportMode } from "../lib/exportExcel";
+import { receiptHasSubtotalTotalMismatch } from "../lib/receiptTotalCheck";
 import type { LlmProviderId } from "../lib/llmProviders";
 import { recognizeReceipt, testApiKey } from "../lib/receiptVisionLlm";
 import {
@@ -560,16 +561,31 @@ export default function ReceiptOcrPage() {
               )}
               {queue.length > 0 && (
                 <div className="min-w-0 divide-y divide-slate-200 dark:divide-slate-600/50">
-              {queue.map((item) => (
+              {queue.map((item) => {
+                const isSelected = selected?.id === item.id;
+                const subtotalMismatch =
+                  item.status === "success" &&
+                  item.result != null &&
+                  receiptHasSubtotalTotalMismatch(item.result);
+                const rowTone = subtotalMismatch
+                  ? isSelected
+                    ? "border-2 border-red-500 bg-red-50 shadow-sm dark:border-red-400 dark:bg-red-950/40"
+                    : "border-2 border-red-400/90 bg-red-50/80 hover:bg-red-50 dark:border-red-500/85 dark:bg-red-950/30 dark:hover:bg-red-950/45"
+                  : isSelected
+                    ? "border-2 border-transparent bg-blue-50/90 dark:bg-blue-950/35"
+                    : "border-2 border-transparent hover:bg-slate-50 dark:hover:bg-slate-700/35";
+                return (
                 <button
                   type="button"
                   key={item.id}
                   onClick={() => setSelectedId(item.id)}
-                  className={`group flex w-full min-w-0 max-w-full items-center gap-2 py-2.5 pl-0.5 pr-1 text-left transition-colors sm:gap-3 ${
-                    selected?.id === item.id
-                      ? "bg-blue-50/90 dark:bg-blue-950/35"
-                      : "hover:bg-slate-50 dark:hover:bg-slate-700/35"
-                  }`}
+                  title={
+                    subtotalMismatch
+                      ? "各行「小计」之和与「合计」不一致，请核对是否识别误差（如数字模糊）"
+                      : undefined
+                  }
+                  aria-invalid={subtotalMismatch || undefined}
+                  className={`group flex w-full min-w-0 max-w-full items-center gap-2 rounded-lg py-2.5 pl-0.5 pr-1 text-left transition-colors sm:gap-3 ${rowTone}`}
                 >
                   <div
                     className="group/thumb relative h-14 w-14 shrink-0 cursor-zoom-in touch-manipulation"
@@ -590,10 +606,16 @@ export default function ReceiptOcrPage() {
                     <p className="truncate text-sm text-slate-800 dark:text-slate-100" title={item.file.name}>
                       {item.file.name}
                     </p>
-                    <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                    <p
+                      className={`truncate text-xs ${
+                        subtotalMismatch
+                          ? "font-medium text-red-600 dark:text-red-400"
+                          : "text-slate-500 dark:text-slate-400"
+                      }`}
+                    >
                       {item.status === "pending" && "等待中"}
                       {item.status === "processing" && "识别中..."}
-                      {item.status === "success" && "已完成"}
+                      {item.status === "success" && (subtotalMismatch ? "已完成 · 小计≠合计" : "已完成")}
                       {item.status === "error" && "失败"}
                     </p>
                     {item.errorMessage && <p className="truncate text-xs text-red-500">{item.errorMessage}</p>}
@@ -633,7 +655,8 @@ export default function ReceiptOcrPage() {
                     )}
                   </span>
                 </button>
-              ))}
+              );
+              })}
                 </div>
               )}
             </div>
