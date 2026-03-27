@@ -296,6 +296,14 @@ export default function ReceiptOcrPage() {
     });
   };
 
+  const removeAllFiles = useCallback(() => {
+    setQueue((prev) => {
+      prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+      return [];
+    });
+    setSelectedId(null);
+  }, []);
+
   const updateReceipt = (id: string, receipt: Receipt) => {
     setQueue((prev) => prev.map((item) => (item.id === id ? { ...item, result: receipt } : item)));
   };
@@ -458,9 +466,9 @@ export default function ReceiptOcrPage() {
 
           {/* 右侧上：子集 Z = 子集 A（API Key 上 + 上传下）| 子集 B（待识别队列） */}
           <section className="order-1 lg:order-2 lg:col-start-2 lg:row-start-1">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(240px,360px)_minmax(0,1fr)] lg:items-stretch lg:gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(240px,360px)_minmax(0,1fr)] lg:items-start lg:gap-4">
               {/* 子集 A */}
-              <div className="flex min-h-0 min-w-0 flex-col gap-4 lg:h-full">
+              <div className="flex min-h-0 min-w-0 flex-col gap-4 lg:min-h-[min(24rem,46vh)]">
                 <ApiKeyInput
                   mode={apiKeySourceMode}
                   onModeChange={setApiKeySource}
@@ -474,15 +482,27 @@ export default function ReceiptOcrPage() {
                 <ImageUploader onAddFiles={handleRequestAddFiles} className="min-h-0 flex-1" />
               </div>
               {/* 子集 B */}
-              <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
-                <section className="card flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+              <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:w-full">
+                <section className="card flex h-[min(20rem,42vh)] min-h-[18rem] w-full min-w-0 flex-col overflow-hidden sm:h-[min(22rem,44vh)] lg:h-[min(24rem,46vh)]">
             <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">待识别队列</h2>
+              <div className="flex min-w-0 items-center gap-1">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">待识别队列</h2>
+                <button
+                  type="button"
+                  className="touch-manipulation rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-red-600 disabled:pointer-events-none disabled:opacity-40 dark:hover:bg-slate-600/60 dark:hover:text-red-400"
+                  title="清空全部图片"
+                  aria-label="清空全部图片"
+                  disabled={queue.length === 0 || isRecognizing}
+                  onClick={removeAllFiles}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
               <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
                 已完成 {completedCount}/{queue.length}
               </span>
             </div>
-            <div className="flex min-h-[min(8rem,30vh)] min-w-0 flex-1 flex-col gap-0 overflow-x-hidden overflow-y-auto pr-0.5 lg:min-h-0">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0 overflow-x-hidden overflow-y-auto pr-0.5">
               {queue.length === 0 && (
                 <p className="rounded-lg bg-slate-100 px-3 py-2 text-sm text-slate-600 dark:bg-slate-700/50 dark:text-slate-300">
                   还没有上传图片
