@@ -19,9 +19,11 @@ export default function ImageUploader({ onAddFiles, className }: ImageUploaderPr
   };
 
   return (
-    <section className={`card flex min-h-0 flex-col !p-3 sm:!p-4 ${className ?? ""}`}>
+    <section
+      className={`card flex h-full min-h-0 min-w-0 flex-col overflow-hidden !p-3 sm:!p-4 ${className ?? ""}`}
+    >
       <div
-        className={`flex min-h-[12rem] flex-1 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-3 py-8 text-center transition-colors sm:min-h-[13rem] sm:rounded-2xl sm:py-10 ${
+        className={`flex min-h-0 w-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-xl border-2 border-dashed px-2 py-3 text-center transition-colors sm:gap-1.5 sm:rounded-2xl sm:px-3 sm:py-4 ${
           isDragOver
             ? "border-blue-500 bg-blue-50 dark:bg-blue-950/25"
             : "border-slate-300 hover:border-blue-400 dark:border-slate-500 dark:hover:border-blue-500/80"
@@ -38,9 +40,11 @@ export default function ImageUploader({ onAddFiles, className }: ImageUploaderPr
           pickFiles(event.dataTransfer.files);
         }}
       >
-        <ImagePlus className="mx-auto mb-2 h-8 w-8 text-blue-600 sm:mb-3 sm:h-10 sm:w-10 dark:text-blue-400" />
-        <p className="text-sm font-semibold text-slate-800 sm:text-base dark:text-slate-100">上传小票图片</p>
-        <p className="mt-1.5 text-xs text-slate-600 sm:mt-2 sm:text-sm dark:text-slate-400">
+        <ImagePlus className="h-7 w-7 shrink-0 text-blue-600 sm:h-9 sm:w-9 dark:text-blue-400" />
+        <p className="min-w-0 shrink px-1 text-sm font-semibold text-slate-800 sm:text-base dark:text-slate-100">
+          上传小票图片
+        </p>
+        <p className="min-w-0 max-w-[18rem] shrink px-1 text-[11px] leading-snug text-slate-600 sm:text-xs sm:text-sm dark:text-slate-400">
           点击选择；电脑可拖拽多张（JPG / PNG / WEBP）
         </p>
       </div>
