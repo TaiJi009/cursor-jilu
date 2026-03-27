@@ -6,11 +6,6 @@
   font-family: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   color: #111827;
   background-color: #f9fafb;
-  /**
-   * 子集 Z 横向排列时：智谱 API Key 卡片顶端 → 上传小票卡片底端的总高度（含 gap），
-   * 与「待识别队列」面板同高。调整此处即可两边联动（28rem = 448px）。
-   */
-  --receipt-subset-z-height: 28rem;
 }
 
 html,

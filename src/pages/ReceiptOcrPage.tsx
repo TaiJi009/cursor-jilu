@@ -466,9 +466,9 @@ export default function ReceiptOcrPage() {
 
           {/* 右侧上：子集 Z = 子集 A（API Key 上 + 上传下）| 子集 B（待识别队列） */}
           <section className="order-1 lg:order-2 lg:col-start-2 lg:row-start-1">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(240px,360px)_minmax(0,1fr)] lg:items-start lg:gap-4">
-              {/* 子集 A */}
-              <div className="flex min-h-0 min-w-0 flex-col gap-4 lg:h-[var(--receipt-subset-z-height)] lg:min-h-0">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(240px,360px)_minmax(0,1fr)] lg:items-stretch lg:gap-4">
+              {/* 子集 A：高度随 API 区展开而增高；上传区 flex-1 占满其下剩余空间，不与 API 重叠 */}
+              <div className="flex min-h-0 min-w-0 flex-col gap-4 lg:h-full">
                 <ApiKeyInput
                   mode={apiKeySourceMode}
                   onModeChange={setApiKeySource}
@@ -481,9 +481,9 @@ export default function ReceiptOcrPage() {
                 />
                 <ImageUploader onAddFiles={handleRequestAddFiles} className="min-h-0 flex-1" />
               </div>
-              {/* 子集 B */}
-              <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:w-full">
-                <section className="card flex min-h-[min(14rem,40vh)] w-full min-w-0 flex-col overflow-hidden lg:h-[var(--receipt-subset-z-height)] lg:min-h-0">
+              {/* 子集 B：与左侧同列等高（网格拉伸），随左侧总高度自适应 */}
+              <div className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:h-full lg:w-full">
+                <section className="card flex min-h-[min(14rem,40vh)] w-full min-w-0 flex-col overflow-hidden lg:min-h-0 lg:h-full">
             <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-1">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">待识别队列</h2>
