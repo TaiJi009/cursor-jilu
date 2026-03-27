@@ -467,7 +467,7 @@ export default function ReceiptOcrPage() {
             <section ref={previewCardRef} className="card flex flex-col p-3 sm:p-4">
               <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">原图预览</h2>
               {!selected ? (
-                <div className="flex min-h-[200px] flex-1 items-center justify-center rounded-xl bg-gray-50 px-3 text-center text-xs text-gray-500 dark:bg-gray-900/40 dark:text-gray-400 sm:min-h-[240px] sm:text-sm">
+                <div className="flex min-h-[300px] flex-1 items-center justify-center rounded-xl bg-gray-50 px-3 text-center text-xs text-gray-500 dark:bg-gray-900/40 dark:text-gray-400 sm:min-h-[360px] sm:text-sm">
                   上传图片后在此查看大图；点击可全屏预览。
                 </div>
               ) : (
@@ -483,7 +483,7 @@ export default function ReceiptOcrPage() {
                   <img
                     src={selected.previewUrl}
                     alt={selected.file.name}
-                    className="max-h-[min(70vh,28rem)] w-full object-contain sm:max-h-[min(75vh,32rem)]"
+                    className="max-h-[min(105vh,42rem)] w-full object-contain sm:max-h-[min(112.5vh,48rem)]"
                   />
                   <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-colors group-hover/preview:bg-black/25 md:bg-black/0 md:group-hover/preview:bg-black/25">
                     <ZoomIn className="h-7 w-7 text-white opacity-70 drop-shadow transition-opacity sm:h-8 sm:w-8 md:opacity-0 md:group-hover/preview:opacity-100" />
