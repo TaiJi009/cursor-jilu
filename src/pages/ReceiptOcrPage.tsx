@@ -16,21 +16,20 @@ import MergedReceiptTable from "../components/MergedReceiptTable";
 import ReceiptTable from "../components/ReceiptTable";
 import { resolveZhipuApiKey } from "../config/builtinApi";
 import { exportReceiptsToExcel, type ExportMode } from "../lib/exportExcel";
+import type { LlmProviderId } from "../lib/llmProviders";
+import { recognizeReceipt, testApiKey } from "../lib/receiptVisionLlm";
 import {
   readApiKey,
   readApiKeySourceMode,
+  readCustomLlmProvider,
   type ApiKeySourceMode,
   writeApiKey,
-  writeApiKeySourceMode
+  writeApiKeySourceMode,
+  writeCustomLlmProvider
 } from "../lib/storage";
-import { recognizeReceipt, testApiKey } from "../lib/zhipu";
 import type { QueueFile, Receipt } from "../types/receipt";
 
-export type ReceiptOcrNavApiStatus = "idle" | "testing" | "success" | "error";
-
-export interface ReceiptOcrPageProps {
-  onApiStatusChange?: (status: ReceiptOcrNavApiStatus) => void;
-}
+type ApiPageStatus = "idle" | "testing" | "success" | "error";
 
 function newQueueFile(file: File): QueueFile {
   return {
@@ -44,6 +43,7 @@ function newQueueFile(file: File): QueueFile {
 /** 队列中多张图片并行识别，完成后各自更新 success / error */
 async function recognizeEntriesInParallel(
   entries: QueueFile[],
+  provider: LlmProviderId,
   apiKey: string,
   setQueue: Dispatch<SetStateAction<QueueFile[]>>
 ): Promise<void> {
@@ -56,7 +56,7 @@ async function recognizeEntriesInParallel(
   await Promise.all(
     entries.map(async (entry) => {
       try {
-        const result = await recognizeReceipt(entry.file, apiKey);
+        const result = await recognizeReceipt(entry.file, provider, apiKey);
         setQueue((prev) =>
           prev.map((item) =>
             item.id === entry.id ? { ...item, status: "success", result, errorMessage: undefined } : item
@@ -72,10 +72,11 @@ async function recognizeEntriesInParallel(
   );
 }
 
-export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProps) {
+export default function ReceiptOcrPage() {
   const [apiKey, setApiKey] = useState<string>(() => readApiKey());
   const [apiKeySourceMode, setApiKeySourceMode] = useState<ApiKeySourceMode>(() => readApiKeySourceMode());
-  const [apiStatus, setApiStatus] = useState<ReceiptOcrNavApiStatus>("idle");
+  const [customLlmProvider, setCustomLlmProviderState] = useState<LlmProviderId>(() => readCustomLlmProvider());
+  const [apiStatus, setApiStatus] = useState<ApiPageStatus>("idle");
   const [queue, setQueue] = useState<QueueFile[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string>("");
@@ -97,13 +98,20 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
     [apiKeySourceMode, apiKey]
   );
 
+  /** 站点默认固定走智谱；自有 Key 时由用户选择服务商 */
+  const effectiveLlmProvider = useMemo<LlmProviderId>(
+    () => (apiKeySourceMode === "builtin" ? "zhipu" : customLlmProvider),
+    [apiKeySourceMode, customLlmProvider]
+  );
+
+  const setCustomLlmProvider = useCallback((id: LlmProviderId) => {
+    writeCustomLlmProvider(id);
+    setCustomLlmProviderState(id);
+  }, []);
+
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
-
-  useEffect(() => {
-    onApiStatusChange?.(apiStatus);
-  }, [apiStatus, onApiStatusChange]);
 
   const closeLightbox = useCallback(() => {
     setLightboxUrl(null);
@@ -178,10 +186,10 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
       return;
     }
     setApiStatus("testing");
-    testApiKey(effectiveApiKey).then((isValid) => {
+    testApiKey(effectiveLlmProvider, effectiveApiKey).then((isValid) => {
       setApiStatus(isValid ? "success" : "error");
     });
-  }, [effectiveApiKey]);
+  }, [effectiveApiKey, effectiveLlmProvider]);
 
   useEffect(() => {
     return () => {
@@ -244,7 +252,7 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
     if (!effectiveApiKey.trim()) {
       showToast(
         apiKeySourceMode === "custom"
-          ? "当前为自定义 API：请先填写并保存你的智谱 API Key。"
+          ? "当前为自定义 API：请选择服务商并填写、保存 API Key。"
           : "站点默认 API 不可用，请联系管理员。"
       );
       return;
@@ -253,7 +261,7 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
 
     setIsRecognizing(true);
     try {
-      await recognizeEntriesInParallel(entries, effectiveApiKey, setQueue);
+      await recognizeEntriesInParallel(entries, effectiveLlmProvider, effectiveApiKey, setQueue);
       showToast("新增图片识别已结束。");
     } finally {
       setIsRecognizing(false);
@@ -300,14 +308,16 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
   const setApiKeySource = (mode: ApiKeySourceMode) => {
     writeApiKeySourceMode(mode);
     setApiKeySourceMode(mode);
-    showToast(mode === "builtin" ? "已切换为站点默认 API。" : "已切换为自定义 API，请填写并保存你的 Key。");
+    showToast(
+      mode === "builtin" ? "已切换为站点默认 API（智谱）。" : "已切换为自有 Key：请选择服务商并填写、保存 API Key。"
+    );
   };
 
   const runRecognition = async () => {
     if (!effectiveApiKey.trim()) {
       showToast(
         apiKeySourceMode === "custom"
-          ? "当前为自定义 API：请先填写并保存你的智谱 API Key。"
+          ? "当前为自定义 API：请选择服务商并填写、保存 API Key。"
           : "站点默认 API 不可用，请联系管理员。"
       );
       return;
@@ -319,7 +329,7 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
 
     setIsRecognizing(true);
     try {
-      await recognizeEntriesInParallel(queue, effectiveApiKey, setQueue);
+      await recognizeEntriesInParallel(queue, effectiveLlmProvider, effectiveApiKey, setQueue);
       showToast("批量识别已结束。");
     } finally {
       setIsRecognizing(false);
@@ -330,7 +340,7 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
     if (!effectiveApiKey.trim()) {
       showToast(
         apiKeySourceMode === "custom"
-          ? "当前为自定义 API：请先填写并保存你的智谱 API Key。"
+          ? "当前为自定义 API：请选择服务商并填写、保存 API Key。"
           : "站点默认 API 不可用，请联系管理员。"
       );
       return;
@@ -342,7 +352,7 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
       prev.map((item) => (item.id === id ? { ...item, status: "processing", errorMessage: undefined } : item))
     );
     try {
-      const result = await recognizeReceipt(entry.file, effectiveApiKey);
+      const result = await recognizeReceipt(entry.file, effectiveLlmProvider, effectiveApiKey);
       setQueue((prev) =>
         prev.map((item) =>
           item.id === id ? { ...item, status: "success", result, errorMessage: undefined } : item
@@ -449,8 +459,11 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
                 <ApiKeyInput
                   mode={apiKeySourceMode}
                   onModeChange={setApiKeySource}
+                  customProvider={customLlmProvider}
+                  onCustomProviderChange={setCustomLlmProvider}
                   customKeyValue={apiKey}
                   onSaveCustomKey={saveApiKey}
+                  apiConnectionStatus={apiStatus}
                   className="shrink-0"
                 />
                 <ImageUploader onAddFiles={handleRequestAddFiles} className="min-h-0 flex-1" />
