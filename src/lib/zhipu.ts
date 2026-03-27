@@ -1,3 +1,4 @@
+import { formatShoppingDateTime } from "./receiptDateFormat";
 import type { Receipt } from "../types/receipt";
 
 const API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
@@ -34,9 +35,12 @@ function normalizeReceipt(raw: unknown): Receipt {
     return Number.isFinite(number) ? number : null;
   };
 
+  const rawDate = parsed.date != null ? String(parsed.date).trim() : "";
+  const formattedDate = rawDate ? formatShoppingDateTime(rawDate) : null;
+
   return {
     storeName: parsed.storeName ?? null,
-    date: parsed.date ?? null,
+    date: formattedDate ?? (rawDate || null),
     items: (parsed.items ?? []).map((item) => {
       const price = toNumber(item.price);
       const quantity = toNumber(item.quantity);
@@ -95,7 +99,7 @@ export async function recognizeReceipt(file: File, apiKey: string): Promise<Rece
   const imageDataUrl = await fileToDataUrl(file);
   const prompt =
     "请识别这张超市购物小票，提取以下信息并只返回 JSON，不要任何解释文字或代码块：" +
-    '{ "date":"YYYY-MM-DD HH:mm", "storeName":"超市名称", "items":[{"name":"商品名称","price":数字,"quantity":数字,"subtotal":数字}], "total":数字 }' +
+    '{ "date":"YYYY-MM-DD HH:mm:ss", "storeName":"超市名称", "items":[{"name":"商品名称","price":数字,"quantity":数字,"subtotal":数字}], "total":数字 }' +
     "。规则：①字段缺失返回 null；②数字字段必须是数字类型；" +
     "③若小票上某商品没有单独列出单价或数量，price 和 quantity 均返回 null，subtotal 填该行金额；" +
     "④若小票上只有一个总金额而无商品明细，items 返回空数组。";
