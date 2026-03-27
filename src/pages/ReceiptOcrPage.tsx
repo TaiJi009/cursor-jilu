@@ -1,5 +1,14 @@
 import { Download, LoaderCircle, Play, RefreshCw, Trash2, X, ZoomIn } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction
+} from "react";
 import { flushSync } from "react-dom";
 import ApiKeyInput from "../components/ApiKeyInput";
 import ImageUploader from "../components/ImageUploader";
@@ -30,6 +39,37 @@ function newQueueFile(file: File): QueueFile {
     previewUrl: URL.createObjectURL(file),
     status: "pending"
   };
+}
+
+/** 队列中多张图片并行识别，完成后各自更新 success / error */
+async function recognizeEntriesInParallel(
+  entries: QueueFile[],
+  apiKey: string,
+  setQueue: Dispatch<SetStateAction<QueueFile[]>>
+): Promise<void> {
+  if (entries.length === 0) return;
+  const idSet = new Set(entries.map((e) => e.id));
+  setQueue((prev) =>
+    prev.map((item) => (idSet.has(item.id) ? { ...item, status: "processing", errorMessage: undefined } : item))
+  );
+
+  await Promise.all(
+    entries.map(async (entry) => {
+      try {
+        const result = await recognizeReceipt(entry.file, apiKey);
+        setQueue((prev) =>
+          prev.map((item) =>
+            item.id === entry.id ? { ...item, status: "success", result, errorMessage: undefined } : item
+          )
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "识别失败";
+        setQueue((prev) =>
+          prev.map((item) => (item.id === entry.id ? { ...item, status: "error", errorMessage: message } : item))
+        );
+      }
+    })
+  );
 }
 
 export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProps) {
@@ -212,26 +252,12 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
     if (entries.length === 0) return;
 
     setIsRecognizing(true);
-    for (const entry of entries) {
-      setQueue((prev) =>
-        prev.map((item) => (item.id === entry.id ? { ...item, status: "processing", errorMessage: undefined } : item))
-      );
-      try {
-        const result = await recognizeReceipt(entry.file, effectiveApiKey);
-        setQueue((prev) =>
-          prev.map((item) =>
-            item.id === entry.id ? { ...item, status: "success", result, errorMessage: undefined } : item
-          )
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "识别失败";
-        setQueue((prev) =>
-          prev.map((item) => (item.id === entry.id ? { ...item, status: "error", errorMessage: message } : item))
-        );
-      }
+    try {
+      await recognizeEntriesInParallel(entries, effectiveApiKey, setQueue);
+      showToast("新增图片识别已结束。");
+    } finally {
+      setIsRecognizing(false);
     }
-    setIsRecognizing(false);
-    showToast("新增图片识别已结束。");
   };
 
   const confirmUploadAddOnly = () => {
@@ -292,24 +318,12 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
     }
 
     setIsRecognizing(true);
-    for (const entry of queue) {
-      setQueue((prev) => prev.map((item) => (item.id === entry.id ? { ...item, status: "processing", errorMessage: undefined } : item)));
-      try {
-        const result = await recognizeReceipt(entry.file, effectiveApiKey);
-        setQueue((prev) =>
-          prev.map((item) =>
-            item.id === entry.id ? { ...item, status: "success", result, errorMessage: undefined } : item
-          )
-        );
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "识别失败";
-        setQueue((prev) =>
-          prev.map((item) => (item.id === entry.id ? { ...item, status: "error", errorMessage: message } : item))
-        );
-      }
+    try {
+      await recognizeEntriesInParallel(queue, effectiveApiKey, setQueue);
+      showToast("批量识别已结束。");
+    } finally {
+      setIsRecognizing(false);
     }
-    setIsRecognizing(false);
-    showToast("批量识别已结束。");
   };
 
   const reRecognizeOne = async (id: string) => {
@@ -427,22 +441,22 @@ export default function ReceiptOcrPage({ onApiStatusChange }: ReceiptOcrPageProp
             </section>
           </aside>
 
-          {/* 右侧上：API / 上传 / 队列（大屏横向三列） */}
+          {/* 右侧上：子集 Z = 子集 A（API Key 上 + 上传下）| 子集 B（待识别队列） */}
           <section className="order-1 lg:order-2 lg:col-start-2 lg:row-start-1">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch lg:gap-4">
-              <div className="min-w-0">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(240px,360px)_minmax(0,1fr)] lg:items-stretch lg:gap-4">
+              {/* 子集 A */}
+              <div className="flex min-h-0 min-w-0 flex-col gap-4 lg:h-full">
                 <ApiKeyInput
                   mode={apiKeySourceMode}
                   onModeChange={setApiKeySource}
                   customKeyValue={apiKey}
                   onSaveCustomKey={saveApiKey}
-                  className="h-full"
+                  className="shrink-0"
                 />
+                <ImageUploader onAddFiles={handleRequestAddFiles} className="min-h-0 flex-1" />
               </div>
-              <div className="min-w-0">
-                <ImageUploader onAddFiles={handleRequestAddFiles} className="h-full" />
-              </div>
-              <div className="min-w-0 flex min-h-0 flex-col">
+              {/* 子集 B */}
+              <div className="flex min-h-0 min-w-0 flex-col">
                 <section className="card flex h-full min-h-0 flex-col">
             <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">待识别队列</h2>
