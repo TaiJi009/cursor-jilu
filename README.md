@@ -45,8 +45,13 @@ npm run preview # 本地预览构建结果
 ## API Key 与部署说明
 
 - 使用视觉识别前需在页面中配置对应服务商的 **API Key**（存储在本地浏览器）。
-- 生产构建默认 `base` 为 `/cursor-jilu/`（见 `vite.config.ts`），与 GitHub 仓库同名子路径部署一致；若更换仓库名或自定义域名，请同步修改 `base`。
+- 生产构建默认 `base` 为 `/2026-3-23-Ticket-OCR-to-Excel/`（见 `vite.config.ts`），与 GitHub 仓库同名子路径部署一致；若更换仓库名或自定义域名，请同步修改 `base`。
 - `main` 分支推送可通过 [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) 部署到 GitHub Pages（需在仓库中启用 Pages 与相应权限）。
+
+## 仓库与本地目录命名
+
+- **GitHub**：在仓库页面打开 **Settings → General → Repository name**，改为 `2026-3-23-Ticket-OCR-to-Excel` 并保存。请先完成网页端重命名，再执行 `git push`（本地 `origin` 已改为新仓库地址；若与你实际账号不一致，请用 `git remote set-url` 自行修正）。
+- **本地文件夹**：将项目根目录重命名为 `2026-3-23-Ticket-OCR-to-Excel`（与仓库名一致）。若 Cursor 或其他进程占用目录导致无法重命名，请先关闭 IDE/终端，再在资源管理器中改名，然后用新路径重新打开工程。
 
 ## 仓库内其他文档
 
@@ -55,4 +60,4 @@ npm run preview # 本地预览构建结果
 
 ---
 
-*npm 包名：`receipt-ocr-web`（见 `package.json`）。*
+*npm 包名：`2026-3-23-ticket-ocr-to-excel`（见 `package.json`）；展示用仓库名：`2026-3-23-Ticket-OCR-to-Excel`。*

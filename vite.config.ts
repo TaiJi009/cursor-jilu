@@ -4,5 +4,5 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: "/cursor-jilu/"
+  base: "/2026-3-23-Ticket-OCR-to-Excel/"
 });
