@@ -1,5 +1,7 @@
 # 超市小票识别助手（Receipt OCR Web）
 
+**在线使用：** [https://taiji009.github.io/2026-3-23-Ticket-OCR-to-Excel/](https://taiji009.github.io/2026-3-23-Ticket-OCR-to-Excel/)
+
 基于浏览器的**超市购物小票 OCR 工具**：上传小票图片，由视觉大模型提取超市名称、购物时间、商品明细与合计，支持在页面中校对编辑，并导出为 Excel（`.xlsx`）。**无需自建后端**，数据与小票图片主要在本地处理；调用 AI 时由浏览器直连各服务商 API。
 
 ## 这是一个怎样的产品
